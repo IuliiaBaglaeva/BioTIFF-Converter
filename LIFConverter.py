@@ -48,39 +48,18 @@ class LifConverter(SeriesConverter):
         return self.n_series
         
     def GetNameAndResolution(self,idx):
-        res =  float(self.lifmetadata.find("ImageDescription").find_all("ChannelDescription")[1]["Max"])
+        res =  float(self.lifmetadata.find("ImageDescription").find_all("ChannelDescription")[0]["Max"])
         Name = self.lifmetadata[idx]["Name"]
         return Name, res
     
     def GetNumberofChannelsandSteps(self,idx):
         scanner_found = False
-        channels = 0
-        x = 0
+        channels = 2
+        x = self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[0]
         xunit = "nm"
-        y = 0
-        yunit = "s"
-        is_xt = False
-        with open(self.logname) as f:
-            for line in f:
-                num_exp = re.search('(?<=SCANNER INFORMATION #)\d+', line)
-                if num_exp is not None and int(num_exp[0]) == idx:
-                    scanner_found = True
-                    continue
-                if scanner_found:
-                    line_list = line.split()
-                    if line_list[0] == "ScanMode" and line_list[1] == "xt":
-                        is_xt = True
-                        continue
-                    if line_list[0] == "Size-Width":
-                        x = float(line_list[2].replace('\x00', ''))
-                    if line_list[0] == "Size-Height":
-                        y = float(line_list[2].replace('\x00', '')) # https://stackoverflow.com/questions/44536431/extract-decimal-number-from-string-in-c-sharp
-                        if not is_xt:
-                            yunit = "nm"
-                    channels = re.search('(?<=Channels		)\d+', line)
-                    if channels is not None:
-                        channels = int(channels[0])
-                        return channels,x,xunit,y,yunit
+        y = self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[1]
+        yunit = "nm"        
+        return channels,x,xunit,y,yunit
           
     # Function for the conversion
     # @param[in] idx: index of the image in series
