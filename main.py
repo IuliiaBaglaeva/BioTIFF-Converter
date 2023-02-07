@@ -1,4 +1,6 @@
 from LEIConverter import LeiConverter
+from LIFConverter import LifConverter
+
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QApplication, QCheckBox, QLabel, QPushButton, QFileDialog, QProgressBar, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
@@ -21,6 +23,7 @@ class ConversionThread(QRunnable):
     def __init__(self, filename,out_dir,setgrayscale):
         super(ConversionThread, self).__init__()
         self.filename = filename
+        _, self.filename_ext = os.path.splitext(self.filename)
         self.signals = WorkerSignals()
         self.out_folder = out_dir
         self.setgray = setgrayscale
@@ -29,7 +32,10 @@ class ConversionThread(QRunnable):
     def run(self):
         
         try:
-            self.converter = LeiConverter(filename=self.filename,setgrayscale = self.setgray)
+            if self.filename_ext == ".lei":
+                self.converter = LeiConverter(filename=self.filename,setgrayscale = self.setgray)
+            else:
+                self.converter = LifConverter(filename=self.filename,setgrayscale = self.setgray)
             self.num_of_images = self.converter.n_series
             i = 0
             while i < self.num_of_images:
@@ -79,7 +85,7 @@ class MainWindow(QMainWindow):
     
     ## Slot, which defines the name of the input image  
     def ChooseImage(self):
-        filename = QFileDialog.getOpenFileName(self,"Open File",self.path,"Leica Microsystems (*.lif *.lei);; Zeiss (*.mdb)") [0]
+        filename = QFileDialog.getOpenFileName(self,"Open File",self.path,"Leica Microsystems (*.lif *.lei);; ") [0]
         if filename != "":
             self.filename = filename
             self.path, file = os.path.split(os.path.abspath(filename))

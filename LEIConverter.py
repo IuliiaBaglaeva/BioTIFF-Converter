@@ -1,10 +1,11 @@
 import numpy as np
 import re
 import tifffile
+from SeriesConverter import SeriesConverter
 
  
 ## Converter of old .lei images
-class LeiConverter:
+class LeiConverter(SeriesConverter):
     ## Constructor
     # @param filename: Name of the file
     def __init__(self,filename,setgrayscale):
@@ -19,7 +20,11 @@ class LeiConverter:
         self.setgrayscale = setgrayscale
         #LUT's
         self.GREEN = np.array([[0,i,0] for i in range(256)]).T
-        
+
+
+    def GetNImages(self):
+        return self.n_series
+
     def FindNumberofSeries(self):
         with open(self.logname) as f:
             for line in f:
