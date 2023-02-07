@@ -1,6 +1,3 @@
-from LEIConverter import LeiConverter
-from LIFConverter import LifConverter
-
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QApplication, QCheckBox, QLabel, QPushButton, QFileDialog, QProgressBar, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
@@ -33,8 +30,10 @@ class ConversionThread(QRunnable):
         
         try:
             if self.filename_ext == ".lei":
+                from LEIConverter import LeiConverter
                 self.converter = LeiConverter(filename=self.filename,setgrayscale = self.setgray)
             else:
+                from LIFConverter import LifConverter
                 self.converter = LifConverter(filename=self.filename,setgrayscale = self.setgray)
             self.num_of_images = self.converter.n_series
             i = 0

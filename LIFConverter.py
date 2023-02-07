@@ -3,8 +3,9 @@ import tifffile
 from readlif.reader import LifFile
 from SeriesConverter import SeriesConverter
 from readlif.reader import _check_magic, _check_mem, _read_int
-import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 
+        
 #taken from readlif package
 def get_xml(filename):
     """
@@ -25,11 +26,10 @@ def get_xml(filename):
 
     header_len = _read_int(f)  # length of the xml header
     xml_header = f.read(header_len * 2).decode("utf-16")
-    xml_root = ET.fromstring(xml_header)
+    xml_root = BeautifulSoup(xml_header, 'xml')
     f.close()
     return xml_root, xml_header
 
- 
 ## Converter of newer .lif images
 class LifConverter(SeriesConverter):
     ## Constructor
@@ -37,6 +37,8 @@ class LifConverter(SeriesConverter):
     def __init__(self,filename,setgrayscale):
         self.filename = filename
         self.data = LifFile(filename)
+        self.lifmetadata, _ = get_xml(filename)
+        self.lifmetadata = self.lifmetadata.find_all("Children").find_all("Element")[::2]
         self.n_series = self.data.num_images
         self.setgrayscale = setgrayscale
         #LUT's
@@ -44,24 +46,11 @@ class LifConverter(SeriesConverter):
 
     def GetNImages(self):
         return self.n_series
-
+        
     def GetNameAndResolution(self,idx):
-        scanner_found = False
-        res = 0
-        Name = ""
-        with open(self.logname) as f:
-            for line in f:
-                num_exp = re.search('(?<=DIMENSION DESCRIPTION #)\d+', line)
-                if num_exp is not None and int(num_exp[0]) == idx:
-                    scanner_found = True
-                    continue
-                if scanner_found:
-                    res = re.search('(?<=Resolution in Bit:   	)\d+', line)
-                    if res is not None:
-                        res = int(res[0])
-                    Name = re.search('(?<=Series Name:	)\S+', line)
-                    if Name is not None:
-                        return Name[0].replace('\x00', ''), res
+        res =  float(self.lifmetadata.find("ImageDescription").find_all("ChannelDescription")[1]["Max"])
+        Name = self.lifmetadata[idx]["Name"]
+        return Name, res
     
     def GetNumberofChannelsandSteps(self,idx):
         scanner_found = False
@@ -141,6 +130,3 @@ class LifConverter(SeriesConverter):
             else:
                 for j in range(channels):
                     tif.save(pages[j], colormap = LUTs[j], metadata = metadata)
-        
-        
-        
