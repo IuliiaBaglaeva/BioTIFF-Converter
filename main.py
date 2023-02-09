@@ -27,7 +27,6 @@ class ConversionThread(QRunnable):
         self.num_of_images = 0
 
     def run(self):
-        
         try:
             if self.filename_ext == ".lei":
                 from LEIConverter import LeiConverter
@@ -78,7 +77,6 @@ class MainWindow(QMainWindow):
         self.button_input.clicked.connect(self.StartConversion)
         ## QProgressBar, shows the progress of the  conversion
         self.progress_bar = self.findChild(QProgressBar, 'progressBar')
-        self.GrayCheckBox = self.findChild(QCheckBox,'GrayScaleCheckBox')
         
         self.threadpool = QThreadPool()
     
@@ -108,7 +106,7 @@ class MainWindow(QMainWindow):
             return
         print(out_directory)
         self.progress_bar.setValue(0)
-        worker = ConversionThread(self.filename,out_directory,self.GrayCheckBox.isChecked())
+        worker = ConversionThread(self.filename,out_directory,True)
         worker.signals.progress.connect(self.ShowProgress)
         worker.signals.finished.connect(self.WorkIsFinished)
         # Execute

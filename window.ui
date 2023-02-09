@@ -86,13 +86,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="GrayScaleCheckBox">
-        <property name="text">
-         <string>Make them grayscale (for SarConfoCal)</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QPushButton" name="ButtonOutput">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">

@@ -38,27 +38,28 @@ class LifConverter(SeriesConverter):
         self.filename = filename
         self.data = LifFile(filename)
         self.lifmetadata, _ = get_xml(filename)
-        self.lifmetadata = self.lifmetadata.find_all("Children").find_all("Element")[::2]
+        self.lifmetadata = self.lifmetadata.find_all("Children")[0].find_all("Element")[::2]
         self.n_series = self.data.num_images
         self.setgrayscale = setgrayscale
         #LUT's
-        self.GREEN = np.array([[0,i,0] for i in range(256)]).T
+        self.GREEN = np.array([[0,i,0] for i in range(256)],dtype=np.uint8).T
+        self.GRAY = np.array([[i,i,i] for i in range(256)],dtype=np.uint8).T
 
     def GetNImages(self):
         return self.n_series
         
     def GetNameAndResolution(self,idx):
-        res =  float(self.lifmetadata.find("ImageDescription").find_all("ChannelDescription")[0]["Max"])
+        res =  float(self.lifmetadata[idx].find("ImageDescription").find_all("ChannelDescription")[0]["Resolution"])
         Name = self.lifmetadata[idx]["Name"]
         return Name, res
     
     def GetNumberofChannelsandSteps(self,idx):
         scanner_found = False
         channels = 2
-        x = self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[0]
+        x = float(self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[0]["Length"])
         xunit = "nm"
-        y = self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[1]
-        yunit = "nm"        
+        y = float(self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[1]["Length"])
+        yunit = self.lifmetadata[idx].find("ImageDescription").find_all("DimensionDescription")[1]["Unit"]     
         return channels,x,xunit,y,yunit
           
     # Function for the conversion
@@ -71,41 +72,34 @@ class LifConverter(SeriesConverter):
         #find number of channels, dx,dy
         channels,x,xunit,y,yunit = self.GetNumberofChannelsandSteps(idx)
         metadata["axes"] = "YX"
-        metadata["PhysicalSizeX"] = x
+        metadata["PhysicalSizeX"] = x * 1e9
         metadata["PhysicalSizeXUnit"] = xunit
         if yunit != 's' or self.setgrayscale:
             metadata["PhysicalSizeY"] = y
             metadata["PhysicalSizeYUnit"] = yunit if yunit != 's' else "nm"
+            if yunit == "s":
+                metadata["PhysicalSizeY"] *= 1e3
         else:
             metadata["TimeIncrement"] = y
             metadata["TimeIncrementUnit"] = yunit
         #find number of images in SERIES
-        number_of_images = self.GetNumberofImages(idx)
-        number_of_images //= channels
         pages = []
         LUTs = []
         #write sequencially one by one
-        for i in range(number_of_images):
-            for j in range(channels):
-                imgname = f'{self.folder+self.projectname}_{name}_Nt{i:03d}_ch{j:02d}.tif' if number_of_images > 1 else f'{self.folder+self.projectname}_{name}_ch{j:02d}.tif'
-                with tifffile.TiffFile(imgname) as tif:
-                    if i == 0:
-                        img = tif.pages[0].asarray()
-                        pages.append(img)
-                        LUTs.append(tif.pages[0].colormap)
-                        if j == 0:
-                            metadata["PhysicalSizeX"] /= img.shape[1]/1e3 #um to nm
-                            if yunit != 's' or self.setgrayscale:
-                                metadata["PhysicalSizeY"] /= img.shape[0]/1e3 #um to nm
-                            else:
-                                metadata["TimeIncrement"] /= img.shape[0]
-                    else:
-                        pages[j] = np.vstack((pages[j],tif.pages[0].asarray()))
+        img = self.data.get_image(idx)
+        for j in range(channels):
+            pages.append(np.array(img.get_plane(c = j)))
+            if j == 0:
+                metadata["PhysicalSizeX"] /= pages[j].shape[1]
+                metadata["PhysicalSizeY"] /= pages[j].shape[0]
+                LUTs.append(self.GREEN)
+            else:
+                LUTs.append(self.GRAY)
         with tifffile.TiffWriter(f'{folder}/{name}.ome.tif',ome=True) as tif:
             if self.setgrayscale:
                 metadata["axes"] = "CYX"
                 pages = np.array(pages)
-                tif.save(pages,photometric='minisblack', metadata = metadata)
+                tif.write(pages,photometric='minisblack', metadata = metadata)
             else:
                 for j in range(channels):
-                    tif.save(pages[j], colormap = LUTs[j], metadata = metadata)
+                    tif.write(pages[j], colormap = LUTs[j], metadata = metadata)
