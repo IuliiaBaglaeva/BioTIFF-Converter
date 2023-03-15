@@ -6,5 +6,6 @@ class SeriesConverter(ABC):
     def GetNImages(self):
         pass
 
+    @abstractmethod
     def ConvertImage(self,idx,out_folder):
         pass
