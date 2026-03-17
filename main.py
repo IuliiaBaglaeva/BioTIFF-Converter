@@ -34,10 +34,14 @@ class ConversionThread(QRunnable):
             elif self.filename_ext == ".lif":
                 from LIFConverter import LifConverter
                 self.converter = LifConverter(filename=self.filename,setgrayscale = self.setgray)
+            elif self.filename_ext == '.czi':
+                from CZIConverter import CziConverter
+                self.converter = CziConverter(filename=self.filename,setgrayscale = self.setgray)
             else:
                 from LSMConverter import LsmConverter
                 self.converter = LsmConverter(filename=self.filename,setgrayscale = self.setgray)
             self.num_of_images = self.converter.n_series
+            print(self.num_of_images)
             i = 0
             while i < self.num_of_images:
                 print(i)
@@ -85,7 +89,15 @@ class MainWindow(QMainWindow):
     
     ## Slot, which defines the name of the input image  
     def ChooseImage(self):
-        filename = QFileDialog.getOpenFileName(self,"Open File",self.path,"Older Leica Microsystems (*.lei);; Newer Leica Microsystems (*.lif);; Zeiss (*.mdb)") [0]
+        filename = QFileDialog.getOpenFileName(
+            self,
+            "Open File",
+            self.path,
+            "Older Leica Microsystems (*.lei);;"
+            "Newer Leica Microsystems (*.lif);;"
+            "Older Zeiss(510) (*.mdb);;"
+            "Newer Zeiss(980) (*.czi)"
+        )[0]
         if filename != "":
             self.filename = filename
             self.path, file = os.path.split(os.path.abspath(filename))
