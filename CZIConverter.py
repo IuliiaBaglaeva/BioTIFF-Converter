@@ -64,11 +64,10 @@ class CziConverter(SeriesConverter):
             mdata = ET.fromstring(czi.metadata())
             channels = 2
             dx, dy, is_linescan = self._GetSteps(mdata)
-            print(dx, dy, is_linescan)
             yunit = 's' if is_linescan else 'nm'
             metadata = {}
             metadata["axes"] = "YX"
-            metadata["PhysicalSizeX"] = dx
+            metadata["PhysicalSizeX"] = dx * 1e9
             metadata["PhysicalSizeXUnit"] = "nm"
             if yunit != 's' or self.setgrayscale:
                 metadata["PhysicalSizeY"] = dy
